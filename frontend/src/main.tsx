@@ -1,9 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
 import App from './App.tsx'
 
-createRoot(document.getElementById('root')!).render(
+// The corrected path to your actual global styles
+import './styles/global.css' 
+
+const rootElement = document.getElementById('root')!
+const root = createRoot(rootElement)
+
+root.render(
   <StrictMode>
     <App />
   </StrictMode>,

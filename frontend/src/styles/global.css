@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* This layer defines all your color variables for the theme */
+@layer base {
+  :root {
+    /* Set a light theme as the default */
+    --background: 0 0% 100%; /* white */
+    --foreground: 222.2 84% 4.9%; /* dark blue */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    
+    /* This is our Blue Theme! */
+    --primary: 233 94% 67%; /* Blue-500: #5970FB */
+    --primary-foreground: 210 40% 98%; /* almost white */
+
+    --secondary: 210 40% 96.1%; /* very light gray-blue */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 233 94% 67%; /* Blue-500 */
+
+    --radius: 0.5rem;
+  }
+}
+
+/* This layer applies the variables directly to the base HTML elements */
+@layer base {
+  * {
+    /* Instead of @apply, we set the CSS property directly */
+    border-color: hsl(var(--border));
+  }
+  body {
+    /* Instead of @apply, we set the CSS properties directly */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+

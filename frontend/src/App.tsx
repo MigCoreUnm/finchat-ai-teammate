@@ -1,35 +1,33 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from "react";
+import { ChatPage } from "./pages/ChatPage";
+import { WelcomePage } from "./pages/WelcomePage";
+import { TestComponents } from "./pages/TestComponents";
+import type { Transaction } from "./types";
 
 function App() {
-  const [count, setCount] = useState(0)
+  // This state will hold the transactions once they are uploaded.
+  // We use its existence to decide which page to show.
+  const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+
+  // This function will be passed to the WelcomePage.
+  // When the upload is successful, it will set the transactions
+  // and trigger the app to render the ChatPage.
+  const handleUploadSuccess = (uploadedTransactions: Transaction[]) => {
+    setTransactions(uploadedTransactions);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <main className="bg-slate-50 font-sans min-h-screen">
+      {/* Conditionally render the correct page */}
+      {transactions ? (
+        // If we have transactions, show the main chat interface
+        <ChatPage initialTransactions={transactions} />
+      ) : (
+          <TestComponents/>
+      )}
+    </main>
+  );
 }
 
-export default App
+export default App;
+
