@@ -2,6 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.api import api_router  # We will use the central router
 
+from dotenv import load_dotenv
+
+
+
+
+load_dotenv()
 app = FastAPI(
     title="FinChat AI Teammate API",
     description="API for the AI-powered financial buddy.",

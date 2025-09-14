@@ -10,7 +10,7 @@ load_dotenv()
 # This is essential for connecting to a remote MongoDB instance like MongoDB Atlas.
 # In your backend/.env file, you should add a line like:
 # MONGO_URI="mongodb+srv://<user>:<password>@<cluster-url>/"
-MONGO_URI = os.getenv("MONGO_URI")
+MONGO_URI = os.getenv("MONGO")
 
 if not MONGO_URI:
     raise ValueError("MONGO_URI environment variable not set. Please create a .env file in the backend directory.")
@@ -20,11 +20,13 @@ class Database:
     def __init__(self):
         self.client: Optional[motor.motor_asyncio.AsyncIOMotorClient] = None
         self.db: Optional[motor.motor_asyncio.AsyncIOMotorDatabase] = None
+        self.connected = False
 
     async def connect(self):
         """Establishes a connection to the MongoDB database."""
         self.client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URI)
         self.db = self.client.finchat  # Your database name is 'finchat'
+        self.connected = True
         print("Successfully connected to MongoDB.")
 
     async def close(self):
@@ -43,16 +45,18 @@ class Database:
         Returns:
             An instance of the collection.
         """
-        if self.db:
+        if self.connected:
             return self.db[name]
         raise Exception("Database not connected. Call connect() first.")
 
 # Create a single, shared instance of the Database class
 db = Database()
 
-def get_db() -> Database:
+async def get_db() -> Database:
     """
     Dependency injection helper to get the shared database instance.
     """
+    if not db.connected:
+        await db.connect()
     return db
 

@@ -15,8 +15,18 @@ export interface Transaction {
   date: string; // Dates are also strings in JSON (e.g., "2025-09-13")
   description: string;
   amount: number;
-  category?: TransactionCategory; // The category is optional, to be filled by the AI
+  category: TransactionCategory; // The category is optional, to be filled by the AI
 }
+
+export interface Policy {
+  policy_id: string;
+  description: string;
+  limit_amount: number;
+  timeframe: 'daily' | 'weekly' | 'monthly'; 
+  target_category: string;
+  current_spending: number;
+}
+
 
 // Type for the user's financial goal
 export interface UserGoal {
@@ -57,4 +67,35 @@ export interface SavingTip {
   description: string;
   potential_savings: number;
   location_info?: LocationInfo;
+}
+
+
+
+// frontend/src/types/index.ts
+
+// Matches TransactionDB
+export interface TransactionAPI {
+  // Dates are serialized as strings in JSON
+  date: string;
+  description: string;
+  amount: number;
+  category?: string | null;
+}
+
+// Matches GoalDB
+export interface Goal {
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  deadline?: string | null;
+}
+
+// Matches PolicyDB
+export type Timeframe = "Weekly" | "Monthly" | "Yearly";
+
+
+// Matches FinancialContext (The main response structure from the API)
+export interface FinancialContext {
+  policies: Policy[];
+  transactions: Transaction[];
 }

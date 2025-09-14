@@ -1,46 +1,85 @@
 import pandas as pd
-from fastapi import UploadFile
+import io
+import numpy as np
+from fastapi import UploadFile, HTTPException
 from typing import List
-from io import StringIO
+import os
+from dotenv import load_dotenv
+from app.core.models import TransactionCreate, CategorizedTransaction, TransactionCategory
 
-from app.schemas.transaction import Transaction
+# LangChain Imports
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
 
-def parse_csv_to_transactions(contents: bytes) -> List[Transaction]:
-    """
-    Parses the byte contents of a CSV file into a list of Transaction models.
+load_dotenv()
 
-    Args:
-        contents: The byte string content of the uploaded file.
-
-    Returns:
-        A list of Transaction Pydantic models.
-
-    Raises:
-        ValueError: If the CSV is missing required columns.
-    """
-    # Convert bytes to a string-like object for Pandas
-    csv_data = StringIO(contents.decode("utf-8"))
-    
+async def parse_csv(file: UploadFile) -> List[TransactionCreate]:
+    # --- Initial file reading and data cleaning (same as before) ---
+    content = await file.read()
     try:
-        df = pd.read_csv(csv_data)
+        df = pd.read_csv(io.BytesIO(content))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid CSV format.")
 
-        # --- Data Validation ---
-        required_columns = ["Date", "Description", "Amount"]
-        if not all(col in df.columns for col in required_columns):
-            raise ValueError(f"CSV is missing one of the required columns: {required_columns}")
+    df.columns = df.columns.str.strip().str.lower()
 
-        transactions = []
-        for index, row in df.iterrows():
-            # Create a Transaction instance from each row
-            transaction_data = Transaction(
-                date=row["Date"],
-                description=row["Description"],
-                amount=row["Amount"],
-            )
-            transactions.append(transaction_data)
-        
-        return transactions
+    required_columns = ['date', 'description', 'amount']
+    if not all(col in df.columns for col in required_columns):
+        raise HTTPException(status_code=400, detail="Missing required columns: date, description, amount.")
 
+    try:
+        df['date'] = pd.to_datetime(df['date']).dt.date
+        df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0.0)
+        if 'category' not in df.columns:
+            df['category'] = np.nan
+        df['category'] = df['category'].replace({np.nan: None})
     except Exception as e:
-        # Re-raise exceptions with a clear message to be caught by the endpoint
-        raise ValueError(f"Error processing CSV file: {e}")
+        raise HTTPException(status_code=400, detail=f"Error processing CSV data types: {e}")
+
+    # --- LangChain Setup (same as before) ---
+    model = ChatOpenAI(model="gpt-5-nano", temperature=0, api_key = os.getenv("LLM"))
+    structured_llm = model.with_structured_output(CategorizedTransaction)
+    prompt = ChatPromptTemplate.from_template(
+        "Categorize the following financial transaction based on its description: '{description}'"
+    )
+    categorization_chain = prompt | structured_llm
+
+    records = df.to_dict(orient='records')
+    
+    # --- BATCH PROCESSING LOGIC ---
+    
+    # 1. Separate records into those that need categorization and those that don't.
+    records_to_categorize = []
+    finalized_records = []
+    for record in records:
+        if pd.isna(record.get('category')):
+            records_to_categorize.append(record)
+        else:
+            finalized_records.append(record)
+
+    # 2. If there are records that need categorization, process them in a batch.
+    if records_to_categorize:
+        # Create a list of inputs for the batch call.
+        batch_inputs = [{"description": r['description']} for r in records_to_categorize]
+        
+        # Make a single, efficient batch call to the API.
+        batch_results = await categorization_chain.abatch(batch_inputs)
+        
+        # 3. Merge the results back into the original records.
+        for record, result in zip(records_to_categorize, batch_results):
+            record['category'] = result.category
+        
+        # Add the newly categorized records to our final list.
+        finalized_records.extend(records_to_categorize)
+
+    # --- Final Validation and Conversion ---
+    parsed_transactions: List[TransactionCreate] = []
+    for record in finalized_records:
+        try:
+            filtered_record = {k: v for k, v in record.items() if k in TransactionCreate.__fields__}
+            transaction = TransactionCreate(**filtered_record)
+            parsed_transactions.append(transaction)
+        except Exception:
+            continue
+
+    return parsed_transactions

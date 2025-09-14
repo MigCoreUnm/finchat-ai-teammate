@@ -22,15 +22,10 @@ export function LoginPage() {
         </p>
       </div>
 
-      {/* This is the main container for the Clerk components.
-        By removing the 'path' and 'routing' props, these components will
-        always render when this page is visible, solving the core issue.
-      */}
       <Card className="p-2 min-w-[350px]">
         {isSigningUp ? <SignUp /> : <SignIn />}
       </Card>
 
-      {/* This section allows the user to toggle between the two forms */}
       <div className="text-center mt-6">
         <p className="text-sm text-slate-600">
           {isSigningUp

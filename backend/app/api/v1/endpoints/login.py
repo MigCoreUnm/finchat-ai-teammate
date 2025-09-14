@@ -1,40 +1,32 @@
-from app.schemas.db import UserDocumentDB
-from app.schemas.user import UserDocument, UserLoginRequest
-from app.core.database import Database
+from app.core.models import UserDocument, UserLoginRequest, UserResponse
+from app.services.user_service import get_or_create_user
+from fastapi import APIRouter, Depends, HTTPException
+from app.core.database import get_db, Database # Assuming 'Database' is your wrapper class
 
-async def get_or_create_user(db: Database, login_data: UserLoginRequest) -> UserDocument:
+# Create a new router for user-related endpoints
+router = APIRouter()
+
+@router.post("/login", response_model=UserResponse)
+async def login_and_get_user(
+    login_data: UserLoginRequest, 
+) -> UserResponse:
     """
-    Service layer function to fetch a user document from MongoDB, or create one if it doesn't exist.
-    Handles the translation between database models and API schemas.
-
-    Args:
-        db: The database instance.
-        login_data: The user login data from the API request.
-
-    Returns:
-        The user data as an API schema object (UserDocument).
+    Handles user login by fetching an existing user document from the database
+    or creating a new one if the user is signing in for the first time.
     """
-    users_collection = db.get_collection("users")
-    
-    # Check if user exists based on Clerk ID
-    user_db_data = await users_collection.find_one({"clerk_id": login_data.clerk_id})
-    
-    if user_db_data:
-        # If user exists, parse the DB data into our DB model
-        user_db = UserDocumentDB(**user_db_data)
-        # Then, convert the DB model into our API schema before returning
-        return UserDocument(**user_db.dict())
-    
-    # If user does not exist, create a new DB model instance
-    new_user_db = UserDocumentDB(
-        email=login_data.email,
-        clerk_id=login_data.clerk_id
-    )
-    
-    # Convert the DB model to a dictionary, excluding the 'id' because MongoDB creates it
-    new_user_dict = new_user_db.dict(exclude={"id"})
 
-    await users_collection.insert_one(new_user_dict)
-    
-    # Return the newly created user data as an API schema object
-    return UserDocument(**new_user_db.dict())
+    try:
+        # The 'db' object is now correctly provided by FastAPI
+        exist, user_document = await get_or_create_user( login_data)
+        if user_document is None:
+             # This can happen if the service layer has an issue but doesn't raise an exception
+             raise HTTPException(status_code=404, detail="User could not be found or created.")
+        
+        final = {"exists":exist}
+        return final
+    except Exception as e:
+        print(f"Error during user login/creation: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail="An error occurred while processing your login."
+        )

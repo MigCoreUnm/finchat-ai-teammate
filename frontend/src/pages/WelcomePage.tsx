@@ -9,14 +9,21 @@ interface WelcomePageProps {
 
 export const WelcomePage: React.FC<WelcomePageProps> = ({ onFileUpload, isLoading }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   const handleButtonClick = () => {
-    fileInputRef.current?.click();
+    if (!isLoading) {
+        fileInputRef.current?.click();
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Basic client-side validation
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        alert("Please upload a valid CSV file.");
+        return;
+      }
       onFileUpload(file);
     }
   };
@@ -46,15 +53,16 @@ export const WelcomePage: React.FC<WelcomePageProps> = ({ onFileUpload, isLoadin
             className="w-full" 
             onClick={handleButtonClick}
             isLoading={isLoading} // Use the isLoading prop
+            disabled={isLoading}  // Disable the button while loading
           >
-            Upload Transaction CSV
+            {isLoading ? "Analyzing Transactions..." : "Upload Transaction CSV"}
           </Button>
           <p className="text-xs text-muted-foreground mt-3">
-            Your data is kept private and never stored on our servers.
+            {/* Updated privacy notice since data is now stored in MongoDB */}
+            We securely process and store your data to provide personalized insights.
           </p>
         </CardContent>
       </Card>
     </div>
   );
 };
-

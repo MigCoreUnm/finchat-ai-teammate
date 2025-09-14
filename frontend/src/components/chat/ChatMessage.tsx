@@ -5,7 +5,11 @@ interface ChatMessageProps {
   source: 'AI' | 'User';
   children: React.ReactNode;
 }
-
+export type Message = {
+  sender: 'AI' | 'User';
+  text: string;
+  timestamp: number;
+};
 export const ChatMessage: React.FC<ChatMessageProps> = ({ source, children }) => {
   const isAI = source === 'AI';
 
@@ -23,3 +27,4 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ source, children }) =>
     </div>
   );
 };
+
