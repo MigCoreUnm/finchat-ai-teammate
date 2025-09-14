@@ -1,31 +1,72 @@
 import { useState } from "react";
-import { ChatPage } from "./pages/ChatPage";
+import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { WelcomePage } from "./pages/WelcomePage";
-import { TestComponents } from "./pages/TestComponents";
+import { ChatPage } from "./pages/ChatPage";
+import { LoginPage } from "./pages/LoginPage";
 import type { Transaction } from "./types";
+import { uploadTransactions } from "./api/transactionAPI";
+import { Button } from "./components/ui/Button";
 
 function App() {
-  // This state will hold the transactions once they are uploaded.
-  // We use its existence to decide which page to show.
-  const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+  // --- Main Application Logic ---
+  const MainApp = () => {
+    const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-  // This function will be passed to the WelcomePage.
-  // When the upload is successful, it will set the transactions
-  // and trigger the app to render the ChatPage.
-  const handleUploadSuccess = (uploadedTransactions: Transaction[]) => {
-    setTransactions(uploadedTransactions);
+    const handleFileUpload = async (file: File) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await uploadTransactions(file);
+        setTransactions(response.transactions);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        setTransactions(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const handleReset = () => {
+      setTransactions(null);
+      setError(null);
+    };
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen bg-slate-50 text-center p-4">
+          <h2 className="text-2xl font-bold text-destructive mb-4">Oops! Something went wrong.</h2>
+          <p className="text-red-600 mb-6">{error}</p>
+          <Button onClick={handleReset}>Try Again</Button>
+        </div>
+      );
+    }
+
+    return (
+      <main>
+        {transactions ? (
+          <ChatPage initialTransactions={transactions} />
+        ) : (
+          <WelcomePage onFileUpload={handleFileUpload} isLoading={isLoading} />
+        )}
+      </main>
+    );
   };
 
+  // --- Authentication Router ---
   return (
-    <main className="bg-slate-50 font-sans min-h-screen">
-      {/* Conditionally render the correct page */}
-      {transactions ? (
-        // If we have transactions, show the main chat interface
-        <ChatPage initialTransactions={transactions} />
-      ) : (
-          <TestComponents/>
-      )}
-    </main>
+    <>
+      <SignedOut>
+        <LoginPage />
+      </SignedOut>
+      <SignedIn>
+        <header className="absolute top-4 right-4 z-10">
+          <UserButton />
+        </header>
+        <MainApp />
+      </SignedIn>
+    </>
   );
 }
 

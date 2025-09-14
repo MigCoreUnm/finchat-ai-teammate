@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import {
   Card,
   CardHeader,
@@ -6,7 +6,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card";
+} from "@/components/ui/Card";
 import { Input } from "@/components/ui/input";
 import { ProgressDonut } from "@/components/ui/ProgressDonut";
 import { ArrowRight, Mail } from "lucide-react";
