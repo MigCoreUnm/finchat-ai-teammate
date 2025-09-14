@@ -1,4 +1,4 @@
-from app.models.user import UserDocumentDB
+from app.schemas.db import UserDocumentDB
 from app.schemas.user import UserDocument, UserLoginRequest
 from app.core.database import Database
 
